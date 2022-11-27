@@ -26,10 +26,12 @@ public class NewDeviceConnectedCheckerRequest extends Thread {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Authorization", token);
         response = service.addDevicesToMap(headers, URI.create(url));
-        try {
-            Thread.sleep(30000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        while (response == null) {
+            try {
+                sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

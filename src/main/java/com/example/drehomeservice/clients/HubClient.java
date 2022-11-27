@@ -38,19 +38,20 @@ public class HubClient extends AbstractClient {
     @Getter
     private Map<Integer, String> connectedDevices;
     private HubApiInterface service;
+    private NewDeviceConnectedCheckerRequest request;
 
     @PostConstruct
     private void init() {
         httpClient = createHttpClient();
         service = createHubApiInterface(url);
+        request = new NewDeviceConnectedCheckerRequest(token, service, url);
         connectedDevices = getConnectedDevicesFromHub();
     }
 
     private Map<Integer, String> getConnectedDevicesFromHub() {
-        NewDeviceConnectedCheckerRequest request = new NewDeviceConnectedCheckerRequest(token, service, url);
-        request.setDaemon(true);
-        request.start();
-        return getDevicesIdsFromResponse(request.getResponse());
+        request.run();
+        Response response = request.getResponse();
+        return getDevicesIdsFromResponse(response);
     }
 
     private Map<Integer, String> getDevicesIdsFromResponse(Response response) {
