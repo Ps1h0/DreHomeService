@@ -58,7 +58,7 @@ public class HubClient extends AbstractClient {
         Map<Integer, String> connectedDevices = new HashMap<>();
         try (InputStream inputStream = response.body().asInputStream()) {
             String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilderFactory factory = createDocumentBuilderFactory();
             DocumentBuilder builder = factory.newDocumentBuilder();
             try (StringReader stringReader = new StringReader(responseDetails)) {
                 Document doc = builder.parse(new InputSource(stringReader));
@@ -79,5 +79,18 @@ public class HubClient extends AbstractClient {
 
     private HubApiInterface createHubApiInterface(String url) {
         return createApiService(httpClient, HubApiInterface.class, url);
+    }
+
+    private DocumentBuilderFactory createDocumentBuilderFactory() {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setValidating(false);
+        factory.setNamespaceAware(true);
+        try {
+            factory.setFeature("http://xml.org/sax/features/namespaces", false);
+            factory.setFeature("http://xml.org/sax/features/validation", false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        } catch (ParserConfigurationException ignore) {}
+        return factory;
     }
 }
