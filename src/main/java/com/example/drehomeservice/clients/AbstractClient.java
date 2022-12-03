@@ -1,9 +1,11 @@
 package com.example.drehomeservice.clients;
 
 import feign.Feign;
+import feign.Logger;
 import feign.Request;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
+import feign.slf4j.Slf4jLogger;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
@@ -24,6 +26,8 @@ public abstract class AbstractClient {
         return Feign.builder().client(new feign.okhttp.OkHttpClient(httpClient))
                 .decoder(new JacksonDecoder())
                 .encoder(new JacksonEncoder())
+                .logger(new Slf4jLogger(apiType))
+                .logLevel(Logger.Level.FULL)
                 .options(new Request.Options(
                         60, TimeUnit.MILLISECONDS,
                         60, TimeUnit.MILLISECONDS,

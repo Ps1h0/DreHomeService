@@ -1,10 +1,8 @@
 package com.example.drehomeservice.interfaces;
 
-import feign.HeaderMap;
-import feign.Param;
-import feign.RequestLine;
-import feign.Response;
+import feign.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.net.URI;
 import java.util.Map;
@@ -28,5 +26,5 @@ public interface HubApiInterface {
      * Метод для изменения состояния устройства (вкл -> выкл; выкл -> вкл)
      */
     @RequestLine(value = "POST /v1.3/smarthome/opportunity")
-    Response setPowerOnDevice(@HeaderMap Map<String, String> headers, URI path);
+    Response switchDevice(@HeaderMap Map<String, String> headers, URI path, @RequestBody String body);
 }
