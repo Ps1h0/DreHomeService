@@ -1,7 +1,7 @@
 package com.example.drehomeservice.entities;
 
 public abstract class Device {
-    private String name;
-    private String ip;
+    private String devId;
+    private String devName;
     private boolean status;
 }

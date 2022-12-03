@@ -7,20 +7,14 @@ import lombok.Getter;
 import okhttp3.OkHttpClient;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import javax.annotation.PostConstruct;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,20 +52,12 @@ public class HubClient extends AbstractClient {
         Map<Integer, String> connectedDevices = new HashMap<>();
         try (InputStream inputStream = response.body().asInputStream()) {
             String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
-            DocumentBuilderFactory factory = createDocumentBuilderFactory();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            try (StringReader stringReader = new StringReader(responseDetails)) {
-                Document doc = builder.parse(new InputSource(stringReader));
-                doc.getDocumentElement().normalize();
-                NodeList devIds = doc.getElementsByTagName("dev_id");
-                NodeList devNames = doc.getElementsByTagName("dev_name");
-                for (int i = 0; i < devIds.getLength(); i++) {
-                    connectedDevices.put(Integer.valueOf(devIds.item(i).getTextContent()), devNames.item(i).getTextContent());
-                }
-            } catch (SAXException e) {
-                throw new RuntimeException(e);
+            JSONArray jsonArray = new JSONArray(responseDetails);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject currentJson = jsonArray.getJSONObject(i);
+                connectedDevices.put(currentJson.getInt("dev_id"), currentJson.getString("dev_name"));
             }
-        } catch (IOException | ParserConfigurationException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return connectedDevices;
@@ -79,18 +65,5 @@ public class HubClient extends AbstractClient {
 
     private HubApiInterface createHubApiInterface(String url) {
         return createApiService(httpClient, HubApiInterface.class, url);
-    }
-
-    private DocumentBuilderFactory createDocumentBuilderFactory() {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setValidating(false);
-        factory.setNamespaceAware(true);
-        try {
-            factory.setFeature("http://xml.org/sax/features/namespaces", false);
-            factory.setFeature("http://xml.org/sax/features/validation", false);
-            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
-            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-        } catch (ParserConfigurationException ignore) {}
-        return factory;
     }
 }
