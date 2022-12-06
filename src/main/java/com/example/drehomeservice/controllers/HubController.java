@@ -18,8 +18,8 @@ public class HubController {
         return hubService.getAllConnectedDevices();
     }
 
-    @GetMapping("/switch/id")
-    public Response switchDevice(@RequestParam String id) {
+    @GetMapping("/switch")
+    public Response switchDevice(@RequestParam(name = "id") String id) {
         return hubService.switchDevice(id);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.drehomeservice.interfaces;
 
+import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
 import feign.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,5 +27,5 @@ public interface HubApiInterface {
      * Метод для изменения состояния устройства (вкл -> выкл; выкл -> вкл)
      */
     @RequestLine(value = "POST /v1.3/smarthome/opportunity")
-    Response switchDevice(@HeaderMap Map<String, String> headers, URI path, @RequestBody String body);
+    Response switchDevice(@HeaderMap Map<String, String> headers, URI path, @RequestBody DeviceChangeStatusRequest request);
 }

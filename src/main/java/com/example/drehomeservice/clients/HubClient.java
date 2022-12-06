@@ -2,6 +2,7 @@ package com.example.drehomeservice.clients;
 
 import com.example.drehomeservice.entities.Device;
 import com.example.drehomeservice.interfaces.HubApiInterface;
+import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
 import com.example.drehomeservice.requests.NewDeviceConnectedCheckerRequest;
 import feign.Response;
 import lombok.Getter;
@@ -50,10 +51,10 @@ public class HubClient extends AbstractClient {
         return getDevicesFromResponse(request.getResponse());
     }
 
-    public Response switchDevice(String body){
+    public Response switchDevice(DeviceChangeStatusRequest request){
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Authorization", token);
-        return service.switchDevice(headers, URI.create(url), body);
+        return service.switchDevice(headers, URI.create(url), request);
     }
 
     private Map<Integer, Device> getDevicesFromResponse(Response response) {
@@ -76,20 +77,17 @@ public class HubClient extends AbstractClient {
             JSONArray cluster = currentJson.getJSONArray("zcluster");
             for (int j = 0; j < cluster.length(); j++) {
                 JSONObject k = cluster.getJSONObject(j);
-                devType = checkTypeDevice(k);
+                if (k.getInt("zcl_id") == Device.Type.Bulb.getZclId()){
+                    devType = Device.Type.Bulb;
+                } else if (k.getInt("zcl_id") == Device.Type.Device.getZclId()) {
+                    devType = Device.Type.Device;
+                } else if (k.getInt("zcl_id") == Device.Type.Sensor.getZclId()) {
+                    devType = Device.Type.Sensor;
+                }
             }
             connectedDevices.put(devId, new Device(devId, devName, false, devType));
         }
         return connectedDevices;
-    }
-
-    private Device.Type checkTypeDevice(JSONObject k) {
-        if (k.getInt("zcl_id") == Device.Type.Device.getZclId()) {
-            return Device.Type.Device;
-        } else if (k.getInt("zcl_id") == Device.Type.Sensor.getZclId()) {
-            return Device.Type.Sensor;
-        }
-        return null;
     }
 
     public Device getDeviceById(int id) {
