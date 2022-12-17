@@ -92,8 +92,7 @@ public class HubClient extends AbstractClient {
     }
 
     public Device getDeviceById(int id) {
-        Optional<Device> optionalDevice = Optional.of(connectedDevices.get(id));
-        return optionalDevice.orElseThrow(RuntimeException::new);
+        return Optional.of(connectedDevices.get(id)).orElseThrow(RuntimeException::new);
     }
 
     private HubApiInterface createHubApiInterface(String url) {

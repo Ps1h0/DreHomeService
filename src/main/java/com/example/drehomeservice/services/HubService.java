@@ -22,16 +22,28 @@ public class HubService {
 
     public Response switchDevice(String id) {
         Device device = hubClient.getDeviceById(Integer.parseInt(id));
-        return hubClient.switchDevice(createChangeStatusRequest(device));
+        DeviceChangeStatusRequest request = createChangeStatusRequest(device);
+        device.setIncluded(!device.isIncluded());
+        return hubClient.switchDevice(request);
     }
 
     private DeviceChangeStatusRequest createChangeStatusRequest(Device device) {
         DeviceChangeStatusRequest request = new DeviceChangeStatusRequest();
         request.setZcl_id(device.getType().getZclId());
         request.setOppy_key(device.isIncluded() ? 1 : 0);
-        request.setParams(device.getType().getZclId() == 768 ? List.of(254, 1) : new ArrayList<>());
+        request.setParams(setParamsForDevice(device));
         request.setDevices(List.of(device.getDevId()));
         request.setGroups(new ArrayList<>());
         return request;
+    }
+
+    private List<Integer> setParamsForDevice(Device device) {
+        if (device.getType().getZclId() == 768) {
+            if (device.isIncluded()) return List.of(254, 1);
+            else return new ArrayList<>();
+        } else if (device.getType().getZclId() == 6) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>();
     }
 }
