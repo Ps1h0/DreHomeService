@@ -24,15 +24,10 @@ public abstract class AbstractClient {
 
     protected <T> T createApiService(OkHttpClient httpClient, Class<T> apiType, String url) {
         return Feign.builder().client(new feign.okhttp.OkHttpClient(httpClient))
-                .decoder(new JacksonDecoder())
                 .encoder(new JacksonEncoder())
+                .decoder(new JacksonDecoder())
                 .logger(new Slf4jLogger(apiType))
                 .logLevel(Logger.Level.FULL)
-                .options(new Request.Options(
-                        60, TimeUnit.MILLISECONDS,
-                        60, TimeUnit.MILLISECONDS,
-                        true
-                ))
                 .target(apiType, url);
     }
 }

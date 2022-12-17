@@ -54,6 +54,7 @@ public class HubClient extends AbstractClient {
     public Response switchDevice(DeviceChangeStatusRequest request){
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Authorization", token);
+        headers.put("Content-Type", "application/json");
         return service.switchDevice(headers, URI.create(url), request);
     }
 

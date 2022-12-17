@@ -3,14 +3,24 @@ package com.example.drehomeservice.interfaces;
 import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
 import feign.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.MediaType;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.net.URI;
 import java.util.Map;
 
 @FeignClient("hub")
-public interface HubApiInterface {
+@feign.Headers({"Accept: application/json"})
 
+public interface HubApiInterface {
+    @ResponseBody
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    default String handleHttpMediaTypeNotAcceptableException() {
+        return "acceptable MIME type:" + MediaType.APPLICATION_JSON_VALUE;
+    }
     /**
      * Метод для получения идентификаторов устройств в хабе
      */

@@ -1,8 +1,9 @@
 hub:
   ip:
-    http://192.168.1.1:60000
+    http://192.168.1.112:60000
 token:
   Token aGksbWF4ISBrYWsgZGVsYT8=
 devices:
   bulb: Лампа-1
-
+server:
+  port: 8081
