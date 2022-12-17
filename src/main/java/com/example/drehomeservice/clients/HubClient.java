@@ -3,9 +3,7 @@ package com.example.drehomeservice.clients;
 import com.example.drehomeservice.entities.Device;
 import com.example.drehomeservice.interfaces.HubApiInterface;
 import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
-import com.example.drehomeservice.requests.NewDeviceConnectedCheckerRequest;
 import feign.Response;
-import lombok.Getter;
 import okhttp3.OkHttpClient;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
@@ -33,22 +31,20 @@ public class HubClient extends AbstractClient {
     private String token;
 
     private OkHttpClient httpClient;
-    @Getter
     private Map<Integer, Device> connectedDevices;
     private HubApiInterface service;
-    private NewDeviceConnectedCheckerRequest request;
 
     @PostConstruct
     private void init() {
         httpClient = createHttpClient();
         service = createHubApiInterface(url);
-        request = new NewDeviceConnectedCheckerRequest(token, service, url);
         connectedDevices = getConnectedDevicesFromHub();
     }
 
     private Map<Integer, Device> getConnectedDevicesFromHub() {
-        request.run();
-        return getDevicesFromResponse(request.getResponse());
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("Authorization", token);
+        return getDevicesFromResponse(service.addDevicesToMap(headers, URI.create(url)));
     }
 
     public Response switchDevice(DeviceChangeStatusRequest request){
@@ -97,5 +93,9 @@ public class HubClient extends AbstractClient {
 
     private HubApiInterface createHubApiInterface(String url) {
         return createApiService(httpClient, HubApiInterface.class, url);
+    }
+
+    public Map<Integer, Device> getConnectedDevices() {
+        return getConnectedDevicesFromHub();
     }
 }

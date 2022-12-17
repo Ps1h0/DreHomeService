@@ -30,7 +30,7 @@ public class HubService {
     private DeviceChangeStatusRequest createChangeStatusRequest(Device device) {
         DeviceChangeStatusRequest request = new DeviceChangeStatusRequest();
         request.setZcl_id(device.getType().getZclId());
-        request.setOppy_key(device.isIncluded() ? 1 : 0);
+        request.setOppy_key(device.isIncluded() ? 0 : 1);
         request.setParams(setParamsForDevice(device));
         request.setDevices(List.of(device.getDevId()));
         request.setGroups(new ArrayList<>());
@@ -38,7 +38,7 @@ public class HubService {
     }
 
     private List<Integer> setParamsForDevice(Device device) {
-        if (device.getType().getZclId() == 768) {
+        if (device.getType().getZclId() == 8) {
             if (device.isIncluded()) return List.of(254, 1);
             else return new ArrayList<>();
         } else if (device.getType().getZclId() == 6) {
