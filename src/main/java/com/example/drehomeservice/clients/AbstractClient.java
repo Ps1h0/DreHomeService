@@ -2,7 +2,6 @@ package com.example.drehomeservice.clients;
 
 import feign.Feign;
 import feign.Logger;
-import feign.Request;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.slf4j.Slf4jLogger;
