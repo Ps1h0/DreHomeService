@@ -18,7 +18,7 @@ public class Device {
     public enum Type {
         Device(6),
         Sensor(1280),
-        Bulb(768);
+        Bulb(6);
         private final int zclId;
     }
 }

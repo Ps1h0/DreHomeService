@@ -1,29 +1,28 @@
 package com.example.drehomeservice.services;
 
 import com.example.drehomeservice.clients.HubClient;
+import com.example.drehomeservice.clients.HubClientV2;
 import com.example.drehomeservice.entities.Device;
 import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
 import feign.Response;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Реализация через HttpClient
+ * Реализация через WebClient
  */
-@Service
-public class HubService {
+public class HubServiceV2 {
 
     @Autowired
-    private HubClient hubClient;
+    private HubClientV2 hubClient;
 
     public String getAllConnectedDevices() {
         return hubClient.getConnectedDevices().toString();
     }
 
-    public Response switchDevice(String id) {
+    public String switchDevice(String id) {
         Device device = hubClient.getDeviceById(Integer.parseInt(id));
         DeviceChangeStatusRequest request = createChangeStatusRequest(device);
         device.setIncluded(!device.isIncluded());

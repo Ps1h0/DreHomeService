@@ -1,15 +1,11 @@
 package com.example.drehomeservice.clients;
 
 import com.example.drehomeservice.entities.Device;
-import com.example.drehomeservice.interfaces.HubApiInterface;
 import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
 import feign.Response;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
-import org.apache.commons.io.Charsets;
-import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,21 +13,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/**
- * Реализация через okHttpClient
- */
 @Component
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class HubClient extends AbstractClient {
+public class HubClientV2 extends AbstractClient {
 
     @Autowired
     TaskScheduler taskScheduler;
@@ -42,28 +34,24 @@ public class HubClient extends AbstractClient {
     @Value("${token}")
     String token;
 
-    OkHttpClient httpClient;
+    WebClient webClient;
 
     Map<Integer, Device> connectedDevices;
-    HubApiInterface service;
     Map<String, Map<Integer, Device>> schedulerMap = new HashMap<>();
 
     @PostConstruct
     private void init() {
-        httpClient = createHttpClient();
-        service = createHubApiInterface(url);
+        webClient = createWebClient(url, token);
         connectedDevices = getConnectedDevicesFromHub();
         checkStatusesOfSensors();
     }
 
     private void checkStatusesOfSensors() {
         HashMap<String, String> headers = new HashMap<>();
-        headers.put("Authorization", token);
         headers.put("Content-Type", "application/json");
         Map<Integer, Device> devices = getConnectedDevices();
         List<Device> sensors = getSensorsFromConnectedDevices(devices);
         for (int i = 0; i < sensors.size(); i++) {
-            Response response = service.manageDevice(headers, URI.create(url), String.valueOf(sensors.get(i).getDevId()));
 
         }
     }
@@ -82,9 +70,13 @@ public class HubClient extends AbstractClient {
      * Проверка хаба на подключение новых устройств
      */
     private Map<Integer, Device> getConnectedDevicesFromHub() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", token);
-        Response response = service.addDevicesToMap(headers, URI.create(url));
+        String response = webClient.
+                get()
+                .uri(String.join("", url, "/v1.3/smarthome/devices"))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
         taskScheduler.schedule(
                 () -> {
                     int size = getDevicesFromResponse(response).size();
@@ -100,11 +92,17 @@ public class HubClient extends AbstractClient {
         return devices;
     }
 
-    public Response switchDevice(DeviceChangeStatusRequest request) {
+    public String switchDevice(DeviceChangeStatusRequest request) {
         HashMap<String, String> headers = new HashMap<>();
-        headers.put("Authorization", token);
         headers.put("Content-Type", "application/json");
-        return service.switchDevice(headers, URI.create(url), request);
+        String response = webClient
+                .post()
+                .uri(String.join("", url, "/v1.3/smarthome/opportunity"))
+                .body(Mono.just(request), DeviceChangeStatusRequest.class)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        return response;
     }
 
     private Map<Integer, Device> createDevices(JSONArray jsonArray) {
@@ -134,21 +132,13 @@ public class HubClient extends AbstractClient {
         return Optional.of(connectedDevices.get(id)).orElseThrow(RuntimeException::new);
     }
 
-    private HubApiInterface createHubApiInterface(String url) {
-        return createApiService(httpClient, HubApiInterface.class, url);
-    }
 
     public Map<Integer, Device> getConnectedDevices() {
         return getConnectedDevicesFromHub();
     }
 
-    private Map<Integer, Device> getDevicesFromResponse(Response response) {
-        try (InputStream inputStream = response.body().asInputStream()) {
-            String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
-            JSONArray jsonArray = new JSONArray(responseDetails);
-            return createDevices(jsonArray);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private Map<Integer, Device> getDevicesFromResponse(String response) {
+        JSONArray jsonArray = new JSONArray(response);
+        return createDevices(jsonArray);
     }
 }

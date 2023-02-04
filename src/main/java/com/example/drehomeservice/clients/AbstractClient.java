@@ -8,11 +8,17 @@ import feign.slf4j.Slf4jLogger;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public abstract class AbstractClient {
+
+    public WebClient createWebClient(String url, String token) {
+        log.info("Создание web клиента с url: " + url);
+        return WebClient.builder().baseUrl(url).defaultHeader("Authorization", token).build();
+    }
 
     public OkHttpClient createHttpClient() {
         log.info("Создание http клиента");

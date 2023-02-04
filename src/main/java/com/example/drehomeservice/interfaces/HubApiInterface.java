@@ -14,8 +14,8 @@ import java.util.Map;
 
 @FeignClient("hub")
 @feign.Headers({"Accept: application/json"})
-
 public interface HubApiInterface {
+
     @ResponseBody
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     default String handleHttpMediaTypeNotAcceptableException() {

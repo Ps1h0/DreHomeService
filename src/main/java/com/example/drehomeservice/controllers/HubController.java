@@ -23,4 +23,9 @@ public class HubController {
         Response response = hubService.switchDevice(id);
         return ResponseEntity.ok(response.toString());
     }
+
+    @GetMapping("/test2")
+    public String test2() {
+        return "Дергаю сервис";
+    }
 }
