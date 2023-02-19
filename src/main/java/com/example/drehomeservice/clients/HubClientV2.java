@@ -41,6 +41,7 @@ public class HubClientV2 extends AbstractClient {
 
     @PostConstruct
     private void init() {
+        log.info("Шаг Init");
         webClient = createWebClient(url, token);
         connectedDevices = getConnectedDevicesFromHub();
         checkStatusesOfSensors();

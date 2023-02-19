@@ -50,6 +50,7 @@ public class HubClient extends AbstractClient {
 
     @PostConstruct
     private void init() {
+        log.info("Шаг Init");
         httpClient = createHttpClient();
         service = createHubApiInterface(url);
         connectedDevices = getConnectedDevicesFromHub();
@@ -64,7 +65,6 @@ public class HubClient extends AbstractClient {
         List<Device> sensors = getSensorsFromConnectedDevices(devices);
         for (int i = 0; i < sensors.size(); i++) {
             Response response = service.manageDevice(headers, URI.create(url), String.valueOf(sensors.get(i).getDevId()));
-
         }
     }
 
@@ -135,14 +135,17 @@ public class HubClient extends AbstractClient {
     }
 
     private HubApiInterface createHubApiInterface(String url) {
+        log.info("Создание ApiInterface с url:" + url);
         return createApiService(httpClient, HubApiInterface.class, url);
     }
 
     public Map<Integer, Device> getConnectedDevices() {
+        log.info("Получение подключенных устройств");
         return getConnectedDevicesFromHub();
     }
 
     private Map<Integer, Device> getDevicesFromResponse(Response response) {
+        log.info("Получение устройств из ответа\n" + response);
         try (InputStream inputStream = response.body().asInputStream()) {
             String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
             JSONArray jsonArray = new JSONArray(responseDetails);
