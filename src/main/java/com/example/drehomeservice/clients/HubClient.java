@@ -97,6 +97,7 @@ public class HubClient extends AbstractClient {
         );
         Map<Integer, Device> devices = getDevicesFromResponse(response);
         schedulerMap.put("getConnectedDevicesFromHub - " + System.currentTimeMillis(), devices);
+        response.close();
         return devices;
     }
 
@@ -145,7 +146,7 @@ public class HubClient extends AbstractClient {
     }
 
     private Map<Integer, Device> getDevicesFromResponse(Response response) {
-        log.info("Получение устройств из ответа\n" + response.toString());
+        log.info("Получение устройств из ответа\n" + response.body().toString());
         try {
             InputStream inputStream = response.body().asInputStream();
             String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
@@ -153,7 +154,8 @@ public class HubClient extends AbstractClient {
             inputStream.close();
             return createDevices(jsonArray);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("Не удалось получить устройства из ответа.\n" + e);
+            return new HashMap<>();
         }
     }
 }
