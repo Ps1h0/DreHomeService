@@ -145,10 +145,12 @@ public class HubClient extends AbstractClient {
     }
 
     private Map<Integer, Device> getDevicesFromResponse(Response response) {
-        log.info("Получение устройств из ответа\n" + response);
-        try (InputStream inputStream = response.body().asInputStream()) {
+        log.info("Получение устройств из ответа\n" + response.toString());
+        try {
+            InputStream inputStream = response.body().asInputStream();
             String responseDetails = IOUtils.toString(inputStream, Charsets.toCharset(StandardCharsets.UTF_8));
             JSONArray jsonArray = new JSONArray(responseDetails);
+            inputStream.close();
             return createDevices(jsonArray);
         } catch (IOException e) {
             throw new RuntimeException(e);
