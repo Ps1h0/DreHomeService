@@ -1,13 +1,13 @@
 package com.example.drehomeservice.clients;
 
-import com.example.drehomeservice.entities.Device;
+import com.example.drehomeservice.entities.DeviceV2;
+import com.example.drehomeservice.exceptions.DeviceNotFoundException;
 import com.example.drehomeservice.requests.DeviceChangeStatusRequest;
-import feign.Response;
+import com.jayway.jsonpath.JsonPath;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import net.minidev.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
@@ -17,13 +17,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.net.URI;
+import java.time.Duration;
 import java.util.*;
 
 @Component
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class HubClientV2 extends AbstractClient {
+
+    private static final String DEV_IDS = "$..dev_id";
+    private static final String DEV_NAMES = "$..dev_name";
+    private static final String DVTP_NUMS = "$..dvtp_num";
+    private static final String IS_INCLUDED = "$..zcluster[1].attributes[0].str_attr_value";
 
     @Autowired
     TaskScheduler taskScheduler;
@@ -36,41 +41,23 @@ public class HubClientV2 extends AbstractClient {
 
     WebClient webClient;
 
-    Map<Integer, Device> connectedDevices;
-    Map<String, Map<Integer, Device>> schedulerMap = new HashMap<>();
+    Map<Integer, DeviceV2> connectedDevices;
+    int numberOfDevices;
+    Map<String, Map<Integer, DeviceV2>> schedulerMap = new HashMap<>();
 
     @PostConstruct
     private void init() {
         log.info("Шаг Init");
         webClient = createWebClient(url, token);
         connectedDevices = getConnectedDevicesFromHub();
-        checkStatusesOfSensors();
-    }
-
-    private void checkStatusesOfSensors() {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
-        Map<Integer, Device> devices = getConnectedDevices();
-        List<Device> sensors = getSensorsFromConnectedDevices(devices);
-        for (int i = 0; i < sensors.size(); i++) {
-
-        }
-    }
-
-    private List<Device> getSensorsFromConnectedDevices(Map<Integer, Device> devices) {
-        List<Device> sensors = new ArrayList<>();
-        for (Map.Entry<Integer, Device> entry : devices.entrySet()) {
-            Device current = entry.getValue();
-            if (current.getType().getZclId() == 1280)
-                sensors.add(current);
-        }
-        return sensors;
     }
 
     /**
-     * Проверка хаба на подключение новых устройств
+     * Получение подключенных к хабу устройств.
+     * Выполняется по расписанию каждые 5 секунд
      */
-    private Map<Integer, Device> getConnectedDevicesFromHub() {
+    private Map<Integer, DeviceV2> getConnectedDevicesFromHub() {
+        log.info("Получение подключенных к хабу устройств");
         String response = webClient.
                 get()
                 .uri(String.join("", url, "/v1.3/smarthome/devices"))
@@ -80,15 +67,11 @@ public class HubClientV2 extends AbstractClient {
 
         taskScheduler.schedule(
                 () -> {
-                    int size = getDevicesFromResponse(response).size();
-                    if (connectedDevices.size() < size) {
-                        log.info("Подключено новое устройство");
-                    } else if (connectedDevices.size() > size) {
-                        log.info("Отключено одно из устройств");
-                    }
+                    connectedDevices = getDevicesFromResponse(response);
+                    numberOfDevices = connectedDevices.size();
                 }, new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
         );
-        Map<Integer, Device> devices = getDevicesFromResponse(response);
+        Map<Integer, DeviceV2> devices = getDevicesFromResponse(response);
         schedulerMap.put("getConnectedDevicesFromHub - " + System.currentTimeMillis(), devices);
         return devices;
     }
@@ -106,40 +89,69 @@ public class HubClientV2 extends AbstractClient {
         return response;
     }
 
-    private Map<Integer, Device> createDevices(JSONArray jsonArray) {
-        HashMap<Integer, Device> connectedDevices = new HashMap<>();
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject currentJson = jsonArray.getJSONObject(i);
-            int devId = currentJson.getInt("dev_id");
-            String devName = currentJson.getString("dev_name");
-            Device.Type devType = null;
-            JSONArray cluster = currentJson.getJSONArray("zcluster");
-            for (int j = 0; j < cluster.length(); j++) {
-                JSONObject k = cluster.getJSONObject(j);
-                if (k.getInt("zcl_id") == Device.Type.Bulb.getZclId()) {
-                    devType = Device.Type.Bulb;
-                } else if (k.getInt("zcl_id") == Device.Type.Device.getZclId()) {
-                    devType = Device.Type.Device;
-                } else if (k.getInt("zcl_id") == Device.Type.Sensor.getZclId()) {
-                    devType = Device.Type.Sensor;
-                }
-            }
-            connectedDevices.put(devId, new Device(devId, devName, false, devType));
+    private DeviceV2.Type setTypeOfDevice(int dvtpNum) {
+        if (dvtpNum == 1026)
+            return DeviceV2.Type.Sensor;
+        if (dvtpNum == 81)
+            return DeviceV2.Type.Rosette;
+        if (dvtpNum == 268)
+            return DeviceV2.Type.Bulb;
+        else
+            return null;
+    }
+
+    public DeviceV2 getDeviceById(int id) {
+        return Optional.of(connectedDevices.get(id)).orElseThrow(DeviceNotFoundException::new);
+    }
+
+
+    public Map<Integer, DeviceV2> getConnectedDevices() {
+        return getConnectedDevicesFromHub();
+    }
+
+    private Map<Integer, DeviceV2> getDevicesFromResponse(String response) {
+        Map<Integer, DeviceV2> connectedDevices = new HashMap<>();
+        JSONArray devIds = JsonPath.read(response, DEV_IDS);
+        JSONArray devNames = JsonPath.read(response, DEV_NAMES);
+        JSONArray dvtpNums = JsonPath.read(response, DVTP_NUMS);
+        JSONArray isIncluded = JsonPath.read(response, IS_INCLUDED);
+        for (int i = 0; i < devIds.size(); i++) {
+            DeviceV2 deviceV2 = new DeviceV2();
+            deviceV2.setDevId((Integer) devIds.get(i));
+            deviceV2.setDevName((String) devNames.get(i));
+            deviceV2.setIncluded(isIncluded.get(i).equals("1"));
+            deviceV2.setType(setTypeOfDevice((Integer) dvtpNums.get(i)));
+            connectedDevices.put((Integer) devIds.get(i) ,deviceV2);
         }
         return connectedDevices;
     }
 
-    public Device getDeviceById(int id) {
-        return Optional.of(connectedDevices.get(id)).orElseThrow(RuntimeException::new);
-    }
-
-
-    public Map<Integer, Device> getConnectedDevices() {
-        return getConnectedDevicesFromHub();
-    }
-
-    private Map<Integer, Device> getDevicesFromResponse(String response) {
-        JSONArray jsonArray = new JSONArray(response);
-        return createDevices(jsonArray);
+    public String test(String id, int flag) {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        String response;
+        while (true) {
+            response = webClient
+                    .get()
+                    .uri(String.join("", url, "/v1.3/smarthome/devices?dev_id=", id))
+                    .retrieve()
+                    .bodyToFlux(String.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .blockFirst();
+            if (flag == -1) {
+                return response;
+            }
+            JSONArray array = JsonPath.read(response, IS_INCLUDED);
+            int statusOfDevice = Integer.parseInt(array.get(0).toString());
+            if (statusOfDevice != flag) break;
+            else {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return response;
     }
 }

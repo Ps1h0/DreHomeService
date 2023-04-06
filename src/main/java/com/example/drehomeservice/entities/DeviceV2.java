@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @Getter
 @ToString
-public class Device {
+public class DeviceV2 {
     private int devId;
     private String devName;
     private boolean isIncluded;
@@ -16,9 +16,12 @@ public class Device {
     @AllArgsConstructor
     @Getter
     public enum Type {
-        Device(6),
-        Sensor(1280),
-        Bulb(6);
+        Sensor(1026, "Датчик", 1280),
+        Rosette(81, "Розетка", 6),
+        Bulb(268, "Лампочка", 6);
+        private final int dvtpNum;
+        private final String name;
         private final int zclId;
     }
 }
+
