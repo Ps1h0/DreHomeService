@@ -58,7 +58,6 @@ public class HubClientV2 extends AbstractClient {
      * Выполняется по расписанию каждые 5 секунд
      */
     private Map<Integer, DeviceV2> getConnectedDevicesFromHub() {
-        log.info("Получение подключенных к хабу устройств");
         String response = webClient.
                 get()
                 .uri(String.join("", url, "/v1.3/smarthome/devices"))

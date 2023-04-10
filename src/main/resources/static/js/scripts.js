@@ -1,17 +1,21 @@
 function getDevices() {
-    axios({
-        method: 'get',
-        url: '/api/devices'
-    }).then(response => {
-        let rows = response.data.length;
-        let cells = 4;
-        let elem = document.querySelector('#elem');
+    setInterval(() => {
+        axios({
+            method: 'get',
+            url: '/api/devices'
+        }).then(response => {
+            let rows = response.data.length;
+            let cells = 4;
+            let elem = document.querySelector('#elem');
 
-        createTable(elem, cells, rows, response.data);
-    })
+            createTable(elem, cells, rows, response.data);
+        })
+    }, 2000)
 }
 
 function createTable(parent, cols, rows, data) {
+    clearTable();
+
     let table = document.getElementById('devices');
     let tr = document.createElement('tr');
     let td = document.createElement('td');
@@ -53,5 +57,13 @@ function createTable(parent, cols, rows, data) {
         td.innerHTML = data[i].type;
         tr.appendChild(td);
         table.appendChild(tr)
+    }
+}
+
+function clearTable() {
+    let table = document.getElementById('devices');
+    var rows = table.getElementsByTagName('tr').length;
+    for (let i = rows - 1; i >= 0; i--) {
+        table.deleteRow(i);
     }
 }
