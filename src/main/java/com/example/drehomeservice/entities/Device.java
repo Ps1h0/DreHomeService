@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @Getter
 @ToString
-public class DeviceV2 {
+public class Device {
     private int devId;
     private String devName;
     private boolean isIncluded;

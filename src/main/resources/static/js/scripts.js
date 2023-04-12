@@ -1,3 +1,9 @@
+function goToDevices() {
+    axios({
+        method: 'get',
+        url: '/get_devices'
+    })
+}
 function getDevices() {
     setInterval(() => {
         axios({
@@ -10,7 +16,7 @@ function getDevices() {
 
             createTable(elem, cells, rows, response.data);
         })
-    }, 2000)
+    }, 500)
 }
 
 function createTable(parent, cols, rows, data) {
@@ -62,8 +68,39 @@ function createTable(parent, cols, rows, data) {
 
 function clearTable() {
     let table = document.getElementById('devices');
-    var rows = table.getElementsByTagName('tr').length;
+    const rows = table.getElementsByTagName('tr').length;
     for (let i = rows - 1; i >= 0; i--) {
         table.deleteRow(i);
+    }
+}
+
+function switchDevice() {
+    let deviceId = document.getElementById('deviceId').value;
+    console.log("Ид устройства: " + deviceId);
+    axios({
+        method: 'get',
+        url: '/api/switch',
+        params: {
+            id: deviceId
+        }
+    }).then(response => {
+        let rows = response.data.length;
+        let cells = 4;
+        let elem = document.querySelector('#elem');
+
+        createTable(elem, cells, rows, response.data);
+    })
+}
+
+async function subscribe() {
+    let response = await fetch('/api/longPolling?id=1');
+    if (response.status == 502) {
+        await subscribe();
+    } else if (response.status != 200) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await subscribe();
+    } else {
+        console.log("ВЫПОЛНЕНО")
+        await subscribe();
     }
 }
