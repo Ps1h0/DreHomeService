@@ -104,7 +104,6 @@ public class HubClient extends AbstractClient {
         return Optional.of(connectedDevices.get(id)).orElseThrow(DeviceNotFoundException::new);
     }
 
-
     public Map<Integer, Device> getConnectedDevices() {
         return getConnectedDevicesFromHub();
     }
