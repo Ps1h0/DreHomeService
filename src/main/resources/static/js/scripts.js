@@ -100,7 +100,6 @@ async function subscribe() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         await subscribe();
     } else {
-        console.log("ВЫПОЛНЕНО")
         await subscribe();
     }
 }

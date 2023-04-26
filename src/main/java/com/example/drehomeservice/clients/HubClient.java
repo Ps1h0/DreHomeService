@@ -79,14 +79,13 @@ public class HubClient extends AbstractClient {
     public String switchDevice(DeviceChangeStatusRequest request) {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
-        String response = webClient
+        return webClient
                 .post()
                 .uri(String.join("", url, "/v1.3/smarthome/opportunity"))
                 .body(Mono.just(request), DeviceChangeStatusRequest.class)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-        return response;
     }
 
     private Device.Type setTypeOfDevice(int dvtpNum) {
