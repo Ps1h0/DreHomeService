@@ -53,29 +53,6 @@ public class HubClient extends AbstractClient {
         connectedDevices = getConnectedDevicesFromHub();
     }
 
-    /**
-     * Получение подключенных к хабу устройств.
-     * Выполняется по расписанию каждые 5 секунд
-     */
-    private Map<Integer, Device> getConnectedDevicesFromHub() {
-        String response = webClient.
-                get()
-                .uri(String.join("", url, "/v1.3/smarthome/devices"))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-
-        taskScheduler.schedule(
-                () -> {
-                    connectedDevices = getDevicesFromResponse(response);
-                    numberOfDevices = connectedDevices.size();
-                }, new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
-        );
-        Map<Integer, Device> devices = getDevicesFromResponse(response);
-        schedulerMap.put("getConnectedDevicesFromHub - " + System.currentTimeMillis(), devices);
-        return devices;
-    }
-
     public String switchDevice(DeviceChangeStatusRequest request) {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
@@ -88,6 +65,24 @@ public class HubClient extends AbstractClient {
                 .block();
     }
 
+    public Device getDeviceById(int id) {
+        return Optional.of(connectedDevices.get(id)).orElseThrow(DeviceNotFoundException::new);
+    }
+
+    public Map<Integer, Device> getConnectedDevices() {
+        return getConnectedDevicesFromHub();
+    }
+
+    public String deleteDeviceById(String id) {
+        String response = webClient
+                .delete()
+                .uri(String.join("", url, "/v1.3/smarthome/devices", "?id=", id))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        return response;
+    }
+
     private Device.Type setTypeOfDevice(int dvtpNum) {
         if (dvtpNum == 1026)
             return Device.Type.Sensor;
@@ -97,37 +92,6 @@ public class HubClient extends AbstractClient {
             return Device.Type.Bulb;
         else
             return null;
-    }
-
-    public Device getDeviceById(int id) {
-        return Optional.of(connectedDevices.get(id)).orElseThrow(DeviceNotFoundException::new);
-    }
-
-    public Map<Integer, Device> getConnectedDevices() {
-        return getConnectedDevicesFromHub();
-    }
-
-    private Map<Integer, Device> getDevicesFromResponse(String response) {
-        Map<Integer, Device> connectedDevices = new HashMap<>();
-        JSONArray devIds = JsonPath.read(response, DEV_IDS);
-        JSONArray devNames = JsonPath.read(response, DEV_NAMES);
-        JSONArray dvtpNums = JsonPath.read(response, DVTP_NUMS);
-        JSONArray isDeviceIncluded = JsonPath.read(response, IS_DEVICE_INCLUDED);
-        JSONArray isSensorIncluded = JsonPath.read(response, IS_SENSOR_INCLUDED);
-
-        for (int i = 0; i < devIds.size(); i++) {
-            Device device = new Device();
-            device.setDevId((Integer) devIds.get(i));
-            device.setDevName((String) devNames.get(i));
-            device.setType(setTypeOfDevice((Integer) dvtpNums.get(i)));
-            if (device.getType().getName().equals("Датчик")) {
-                device.setIncluded(isSensorIncluded.get(i).equals("33"));
-            } else {
-                device.setIncluded(isDeviceIncluded.get(i).equals("1"));
-            }
-            connectedDevices.put((Integer) devIds.get(i) , device);
-        }
-        return connectedDevices;
     }
 
     public String longPolling(String id) {
@@ -158,5 +122,51 @@ public class HubClient extends AbstractClient {
             }
         }
         return currentDevice.toString();
+    }
+
+    private Map<Integer, Device> getDevicesFromResponse(String response) {
+        Map<Integer, Device> connectedDevices = new HashMap<>();
+        JSONArray devIds = JsonPath.read(response, DEV_IDS);
+        JSONArray devNames = JsonPath.read(response, DEV_NAMES);
+        JSONArray dvtpNums = JsonPath.read(response, DVTP_NUMS);
+        JSONArray isDeviceIncluded = JsonPath.read(response, IS_DEVICE_INCLUDED);
+        JSONArray isSensorIncluded = JsonPath.read(response, IS_SENSOR_INCLUDED);
+
+        for (int i = 0; i < devIds.size(); i++) {
+            Device device = new Device();
+            device.setDevId((Integer) devIds.get(i));
+            device.setDevName((String) devNames.get(i));
+            device.setType(setTypeOfDevice((Integer) dvtpNums.get(i)));
+            if (device.getType().getName().equals("Датчик")) {
+                device.setIncluded(isSensorIncluded.get(i).equals("33"));
+            } else {
+                device.setIncluded(isDeviceIncluded.get(i).equals("1"));
+            }
+            connectedDevices.put((Integer) devIds.get(i) , device);
+        }
+        return connectedDevices;
+    }
+
+    /**
+     * Получение подключенных к хабу устройств.
+     * Выполняется по расписанию каждые 5 секунд
+     */
+    private Map<Integer, Device> getConnectedDevicesFromHub() {
+        String response = webClient
+                .get()
+                .uri(String.join("", url, "/v1.3/smarthome/devices"))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        taskScheduler.schedule(
+                () -> {
+                    connectedDevices = getDevicesFromResponse(response);
+                    numberOfDevices = connectedDevices.size();
+                }, new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
+        );
+        Map<Integer, Device> devices = getDevicesFromResponse(response);
+        schedulerMap.put("getConnectedDevicesFromHub - " + System.currentTimeMillis(), devices);
+        return devices;
     }
 }

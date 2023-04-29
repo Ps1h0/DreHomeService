@@ -10,9 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Реализация через WebClient
- */
 @Component
 public class HubService {
 
@@ -41,6 +38,14 @@ public class HubService {
         return request;
     }
 
+    public String longPolling(String id) {
+        return hubClient.longPolling(id);
+    }
+
+    public String deleteById(String id) {
+       return hubClient.deleteDeviceById(id);
+    }
+
     private List<Integer> setParamsForDevice(Device device) {
         if (device.getType().getZclId() == 8) {
             if (device.isIncluded()) return List.of(254, 1);
@@ -49,9 +54,5 @@ public class HubService {
             return new ArrayList<>();
         }
         return new ArrayList<>();
-    }
-
-    public String longPolling(String id) {
-        return hubClient.longPolling(id);
     }
 }

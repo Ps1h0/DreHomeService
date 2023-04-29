@@ -37,4 +37,10 @@ public class ApiController {
     public String longPolling(@RequestParam(name = "id") String id) {
         return hubService.longPolling(id);
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteDevice(@RequestParam(name = "id") String id) {
+        String response = hubService.deleteById(id);
+        return ResponseEntity.ok(response);
+    }
 }
