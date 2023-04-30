@@ -158,9 +158,7 @@ public class HubClient extends AbstractClient {
                 .block();
 
         taskScheduler.schedule(
-                () -> {
-                    connectedDevices = getDevicesFromResponse(response);
-                }, new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
+                () -> connectedDevices = getDevicesFromResponse(response), new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
         );
         Map<Integer, Device> devices = getDevicesFromResponse(response);
         schedulerMap.put("getConnectedDevicesFromHub - " + System.currentTimeMillis(), devices);
