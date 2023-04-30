@@ -43,7 +43,6 @@ public class HubClient extends AbstractClient {
     WebClient webClient;
 
     Map<Integer, Device> connectedDevices;
-    int numberOfDevices;
     Map<String, Map<Integer, Device>> schedulerMap = new HashMap<>();
 
     @PostConstruct
@@ -74,13 +73,12 @@ public class HubClient extends AbstractClient {
     }
 
     public String deleteDeviceById(String id) {
-        String response = webClient
+        return webClient
                 .delete()
                 .uri(String.join("", url, "/v1.3/smarthome/devices", "?id=", id))
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-        return response;
     }
 
     private Device.Type setTypeOfDevice(int dvtpNum) {
@@ -162,7 +160,6 @@ public class HubClient extends AbstractClient {
         taskScheduler.schedule(
                 () -> {
                     connectedDevices = getDevicesFromResponse(response);
-                    numberOfDevices = connectedDevices.size();
                 }, new CronTrigger("0/5 * * * * *", TimeZone.getDefault().toZoneId())
         );
         Map<Integer, Device> devices = getDevicesFromResponse(response);

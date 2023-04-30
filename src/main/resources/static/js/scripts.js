@@ -92,8 +92,8 @@ function switchDevice() {
     })
 }
 
-async function subscribe() {
-    let response = await fetch('/api/longPolling?id=1');
+async function subscribe(id) {
+    let response = await fetch('/api/longPolling?id=' + id);
     if (response.status == 502) {
         await subscribe();
     } else if (response.status != 200) {
